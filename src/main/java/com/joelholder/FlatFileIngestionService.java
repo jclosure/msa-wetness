@@ -4,13 +4,18 @@ import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 /**
  * Created by joel on 2/8/16.
@@ -18,59 +23,18 @@ import java.util.function.Function;
 public class FlatFileIngestionService {
 
 
-/*    public List<WbanLocation> getWbanLocations(String filePath) throws IOException {
-
-        List<WbanLocation> recordList = new ArrayList<WbanLocation>();
-
-        File csvFile = new File(filePath);
-
-        CsvMapper mapper = new CsvMapper();
-        CsvSchema schema = CsvSchema.emptySchema().withHeader().withColumnSeparator('|'); // use first row as header; otherwise defaults are fine
-        MappingIterator<Map<String,String>> it = mapper.readerFor(Map.class)
-                .with(schema)
-                .readValues(csvFile);
-
-        while (it.hasNext()) {
-            Map<String,String> rowAsMap = it.next();
-            WbanLocation record = buildWbanLocation(rowAsMap);
-            recordList.add(record);
-        }
-        return recordList;
-
-    }
-
-
-    public List<PopulationRecord> loadMsaRecords(String filePath) throws IOException {
-
-        List<PopulationRecord> recordList = new ArrayList<PopulationRecord>();
-
-        File csvFile = new File(filePath);
-
-        CsvMapper mapper = new CsvMapper();
-        CsvSchema schema = CsvSchema.emptySchema().withHeader(); // use first row as header; otherwise defaults are fine
-        MappingIterator<Map<String,String>> it = mapper.readerFor(Map.class)
-                .with(schema)
-                .readValues(csvFile);
-
-        while (it.hasNext()) {
-            Map<String,String> rowAsMap = it.next();
-            PopulationRecord record = buildRecord(rowAsMap);
-            recordList.add(record);
-        }
-        return recordList;
-    }*/
 
     public <T> List<T> load(String filePath, char seperator, Function<Map<String, String>, T> fn) throws IOException {
 
         List<T> recordList = new ArrayList<T>();
 
-        File csvFile = new File(filePath);
+        File delimitedFile = new File(filePath);
 
         CsvMapper mapper = new CsvMapper();
         CsvSchema schema = CsvSchema.emptySchema().withHeader().withColumnSeparator(seperator);
         MappingIterator<Map<String,String>> it = mapper.readerFor(Map.class)
                 .with(schema)
-                .readValues(csvFile);
+                .readValues(delimitedFile);
 
         while (it.hasNext()) {
             Map<String,String> rowAsMap = it.next();
@@ -80,28 +44,11 @@ public class FlatFileIngestionService {
         return recordList;
     }
 
+    public Stream<String> streamFileLines(String filePath) throws FileNotFoundException {
 
-    private PopulationRecord buildRecord(Map<String, String> rowAsMap) {
-        PopulationRecord record = new PopulationRecord();
-        record.setMsa(rowAsMap.get("MSA"));
-        record.setPopulation(Long.parseLong(rowAsMap.get("Population")));
-        return record;
+        InputStream is = new FileInputStream(new File(filePath));
+        BufferedReader br = new BufferedReader(new InputStreamReader(is));
+        return br.lines();
     }
-
-    private WbanLocation buildWbanLocation(Map<String, String> rowAsMap) {
-        WbanLocation record = new WbanLocation();
-        record.setId(rowAsMap.get("WBAN_ID"));
-        String location = rowAsMap.get("LOCATION");
-
-        double[] coords =  Arrays.asList(location.split(" "))
-                .stream()
-                .mapToDouble(dms -> new Coordinate(dms).getDecimal()).toArray();
-
-        record.setLatitude(coords[0]);
-        record.setLongitude(coords[1]);
-
-        return record;
-    }
-
 
 }

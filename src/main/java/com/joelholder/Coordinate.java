@@ -31,10 +31,10 @@ public class Coordinate {
             directionString = coordString.replaceAll("([0-9*']+)([NSEW]$)", "$2");
         }
         else if (pattern == dmsPattern2) {
-            degreesString = coordString.replaceAll("(^.*)(\\*.*)", "$1");
-            minutesString = coordString.replaceAll("([0-9]+\\*)([0-9]+)('.*)", "$2");
-            secondsString = coordString.replaceAll("([0-9*]+)'([0-9]+)([NSEW])", "$2");
-            directionString = coordString.replaceAll("([0-9*']+)([NSEW]$)", "$2");
+            // todo: handle this type of dms string
+        }
+        else {
+            // todo: handle coordinates already in decimal form
         }
 
         try {

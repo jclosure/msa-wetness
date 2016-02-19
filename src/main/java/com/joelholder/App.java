@@ -1,11 +1,10 @@
 package com.joelholder;
 
-import utils.WorksheetReader;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Created by joel on 2/15/16.
@@ -37,79 +36,95 @@ public class App {
 
             List<WbanLocation> locations =  this.flatFileIngestionService.load("./datasets/wbanmasterlist.psv", '|', rowAsMap -> {
                 WbanLocation record = new WbanLocation();
-                record.setId(rowAsMap.get("WBAN_ID"));
+                record.setId(Integer.parseInt(rowAsMap.get("WBAN_ID")));
                 String location = rowAsMap.get("LOCATION");
 
-                double[] coords;
-                if (location.matches(Coordinate.dmsPattern1.toString())) {
-                    coords = Arrays.asList(location.split(" "))
-                            .stream()
-                            .mapToDouble(dms -> new Coordinate(dms).getDecimal()).toArray();
+                // todo: work on better regexes
+                try {
+                    double[] coords;
+                    if (location.matches(Coordinate.dmsPattern1.toString())) {
+                        // handle coordinates in dms form
+                        coords = Arrays.asList(location.split(" "))
+                                .stream()
+                                .mapToDouble(dms -> new Coordinate(dms, Coordinate.dmsPattern1).getDecimal()).toArray();
+                    } else {
+                        // handle coordinates already in decimal form
+                        coords = Arrays.asList(location.split(" "))
+                                .stream()
+                                .mapToDouble(sCoord -> Double.parseDouble(sCoord)).toArray();
+                    }
 
                     record.setLatitude(coords[0]);
                     record.setLongitude(coords[1]);
                 }
-                else if (location.matches(Coordinate.dmsPattern2.toString())){
-                    coords = null;
+                catch (Exception ex) {
+                    ex.printStackTrace();
                 }
 
                 return record;
             });
 
 
+            // todo: next we will map MSA to FIPS via the coordinates
 
 
+            // todo: then we will stream and filter the large rainfall dataset.
+            String precipFilePath = "./datasets/201505precip.csv";
 
-            // rainfall here.
-            String precipFilePath = "./datasets/2015precip.csv";
+
+            // todo: here we will
+            // todo: then we will compute rainfall relative to adjusted population for April + 1 month (May)
 
 
-            String workbookFilePath = "datasets/List2.xls";
-            String worksheetName = "List 2";
+            // grouping and summing
+            flatFileIngestionService.streamFileLines(precipFilePath)
+                    .skip(1)
+                    .map(line -> {
+                        // todo: project out a PrecipitationRecord for each line
+                        String[] values = line.split(",");
+                        int wban = Integer.parseInt(values[0]);
+                        int hour = Integer.parseInt(values[2]);
+                        int precip = 0;
+                        try {
+                             precip = Integer.parseInt(values[3]);
+                        }
+                        catch (Exception ex) {} // else noop
 
-            Map<String, String> data =  WorksheetReader.read(workbookFilePath, worksheetName);
+                        return new PrecipitationRecord(wban, hour, precip);
+                    })
+                    // hours between 12am and 7am don't count
+                    .filter(precip -> precip.getHour() > 7)
+                    .map(precip -> {
 
-            String asdf = "";
+                        WbanLocation loc = locations.stream()
+                                .peek(loc1 -> System.out.println("will filter " + loc1.getId()))
+                                .filter(loc2 -> loc2.getId() == precip.getWban())
+                                .findFirst().get();
 
-           /* List<PopulationRecord> records = streamFile(precipFilePath)
-                    .substream(1)
-                    .map(App::msaRowMapper)
-                    .filter(person -> person.getAge() > 17)
-                    .limit(50)
-                    .collect(toList());
+                        /*PopulationRecord a = populationRecords.stream()
+                                .peek(pop -> System.out.println("will filter " + pop.getMsa()))
+                                .filter(pop -> pop.getMsa() == precip.getWban())
+                                .findFirst()*/
 
-            records.stream().map(record -> {
+                        // todo: combine WbanLocation with PopulationRecord and project out a WetnessIndicator
 
-                record.getPrecipitation();
-            });
-            */
+                        return precip;
+
+                    })
+                    // group by msa and get the average rainfall of each MSA
+                    .collect(Collectors.groupingBy(PrecipitationRecord::getWban,
+                            Collectors.averagingLong(PrecipitationRecord::getPrecipitation)))
+                    .entrySet().stream()
+                    // sort from wettest to dryest
+                    .sorted(Map.Entry.comparingByValue())
+                    .forEach(System.out::println);
 
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-   /* private Stream<String> streamFile(String filePath) throws FileNotFoundException {
 
-        InputStream is = new FileInputStream(new File(filePath));
-        BufferedReader br = new BufferedReader(new InputStreamReader(is));
-        return br.lines();
-    }
 
-    private PopulationRecord populationRecordMapper(String row) {
-        PopulationRecord record = new PopulationRecord();
-
-        record.setMsa(rowAsMap.get("MSA"));
-        record.setPopulation(Long.parseLong(rowAsMap.get("Population")));
-        return record;
-    }
-
-    private PopulationRecord populationRecordMapper(String row) {
-        PopulationRecord record = new PopulationRecord();
-
-        record.setMsa(rowAsMap.get("MSA"));
-        record.setPopulation(Long.parseLong(rowAsMap.get("Population")));
-        return record;
-    }*/
 
 }

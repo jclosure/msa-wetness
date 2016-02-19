@@ -7,10 +7,14 @@ public class PrecipitationRecord {
 
 
     int wban;
+    int precipitation;
+    int hour;
 
-
-
-    long precipitation;
+    public PrecipitationRecord(int wban, int hour, int precipitation){
+        this.wban = wban;
+        this.precipitation = precipitation;
+        this.hour = hour;
+    }
 
 
     public int getWban() {
@@ -25,8 +29,17 @@ public class PrecipitationRecord {
         return precipitation;
     }
 
-    public void setPrecipitation(long precipitation) {
+    public void setPrecipitation(int precipitation) {
         this.precipitation = precipitation;
     }
+
+    public int getHour() {
+        return hour;
+    }
+
+    public void setHour(int hour) {
+        this.hour = hour;
+    }
+
 
 }

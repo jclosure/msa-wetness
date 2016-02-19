@@ -4,16 +4,16 @@ package com.joelholder;
  * Created by joel on 2/16/16.
  */
 public class WbanLocation {
-    private String id;
+    private int id;
     private double longitude;
     private double latitude;
     private String FIPS;
 
-    public String getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(int id) {
         this.id = id;
     }
 
